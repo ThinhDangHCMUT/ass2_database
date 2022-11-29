@@ -48,11 +48,15 @@ CREATE TABLE Author
     author_id  char(9) PRIMARY KEY
 );
 
+ALTER TABLE AUTHOR  add bName varchar(20);
+
 CREATE TABLE Category 
 (
     cat_id    char(9) PRIMARY KEY,
     cat_name  varchar(20)
 );
+
+
 
 CREATE TABLE Book
 (
@@ -71,6 +75,7 @@ CREATE TABLE Book
 --    CONSTRAINT FK_pub_name FOREIGN KEY (bName)
 --    REFERENCES Publisher(name)
 );
+ALTER TABLE BOOK DROP bName;
 
 -- ALTER TABLE BOOK NO CHECK CONSTRAINT ALL;
 DROP TABLE BOOK;
@@ -83,10 +88,16 @@ CREATE TABLE CART (
 );
 
 ALTER TABLE CART
-ADD CONSTRAINT fk_cus FOREIGN KEY (customer_id) REFERENCES customer(c_id) ON DELETE SET NULL;
+ADD CONSTRAINT fk_cus FOREIGN KEY (customer_id) REFERENCES customer(c_id);
 
 ALTER TABLE CART
-ADD CONSTRAINT FK_book_ids FOREIGN KEY (book_id) REFERENCES Book(book_id) ON DELETE SET NULL;
+DROP CONSTRAINT fk_cus;
+
+ALTER TABLE CART
+ADD CONSTRAINT FK_book_ids FOREIGN KEY (book_id) REFERENCES Book(book_id);
+
+ALTER TABLE CART
+DROP CONSTRAINT FK_book_ids;
 
 CREATE TABLE Include
 (
@@ -151,12 +162,19 @@ CREATE TABLE D_DISCOUNT
 );
 
 
-INSERT INTO book VALUES ('BOOK A',100000001,2,5,3001,'TRAN DANG KHOA','2001',23000);
-INSERT INTO book VALUES ('BOOK B',100000002,3,5,3002,'NGUYEN NGOC ANH','2001',25000);
-INSERT INTO book VALUES ('BOOK C',100000003,2,5,3003,'TRANG HA','2003',50000);
-INSERT INTO book VALUES ('BOOK D',100000004,2,5,3004,'HA VU','2002',70000);
-INSERT INTO book VALUES ('BOOK E',100000005,2,5,3002,'NGUYEN NGOC ANH','2002',50000);
-INSERT INTO book VALUES ('BOOK F',100000006,2,5,3002,'NGUYEN NGOC ANH','2002',50000);
+INSERT INTO book VALUES ('BOOK A',100000001,2,5,3001,'2001',23000);
+INSERT INTO book VALUES ('BOOK B',100000002,3,5,3002,'2001',25000);
+INSERT INTO book VALUES ('BOOK C',100000003,2,5,3003,'2003',50000);
+INSERT INTO book VALUES ('BOOK D',100000004,2,5,3004,'2002',70000);
+INSERT INTO book VALUES ('BOOK E',100000006,2,5,3001,'2002',100000);
+INSERT INTO book VALUES ('BOOK F',100000010,2,5,3002,'2002',80000);
+INSERT INTO book VALUES ('BOOK G',100000007,3,50,3003,'2002',80000);
+
+INSERT INTO author VALUE ('3001', 'TRAN DANG KHOA');
+INSERT INTO author VALUE ('3002', 'NGUYEN NGOC ANH');
+INSERT INTO author VALUE ('3003', 'TRANG HA');
+INSERT INTO author VALUE ('3004', 'HA VU');
+
 
 
 INSERT INTO account VALUES ('thinhdang','2014591','Thinh', STR_TO_DATE('2002-11-14', '%Y-%m-%d') ,'Go Cong, Tien Giang','M', 'Admin', '123456');
@@ -234,34 +252,21 @@ SELECT * FROM ass2.cart;
 SELECT * FROM ass2.book;
 
 
-UPDATE cart
-set book_quanity = 6
-where cart_id = 'a1915140' and book_id = 100000001;
 
 
-drop trigger Cart_quanity_update;
-DELETE FROM `ass2`.`cart` WHERE (`cart_id` = 'a1915140');
-INSERT INTO Cart VALUES ('a1915140', 0, 222222, '1915140',100000001,3);
+
+SELECT book_name, bName 
+from author 
+join book on author_id = bAuthor_id;
 
 use ass2;
+SELECT * FROM 
+book join author on bAuthor_id = author_id;
 
-update cart
-set book_quanity = book_quanity + 1
-where cart_id = 'a1915140' and book_id = '100000001';
-	
-DELIMITER $$
-CREATE TRIGGER NoDisjointAnalyst
-AFTER INSERT 
-ON Analyst FOR EACH ROW
-BEGIN
-	IF EXISTS (SELECT * 
-				FROM Manager m, Worker w, Designer d
-				where m.ID = new.ID AND w.ID = new.ID AND d.ID = new.ID) THEN 
-		SIGNAL SQLSTATE 'Analyst can do other job';
-	END IF;
-END$$
-DELIMITER ;
 
+ 
+
+alter user 'root'@'localhost' identified WITH mysql_native_password by 'D@ngthinh1402'
 
 
 

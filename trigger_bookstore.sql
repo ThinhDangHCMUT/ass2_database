@@ -8,10 +8,14 @@ CREATE TRIGGER Book_insert BEFORE INSERT ON book
 FOR EACH ROW
 BEGIN	
 	IF new.bAuthor_id NOT IN (select author_id from author) THEN 
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You can not update';
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You can not update, there is no author in stock';
     END IF;
 END$$
 DELIMITER ;
+
+SELECT * FROM author;
+INSERT INTO book VALUES ('BOOK A',100000010,2,5,3010,'2001',23000,'2015007');
+
 
 -- kiểm tra xem sách trong kho có còn đủ không, nếu đủ thì được add vào cart, còn không thì báo lỗi
 DELIMITER $$
@@ -19,12 +23,12 @@ CREATE TRIGGER Book_quanity BEFORE UPDATE ON book
 FOR EACH ROW
 BEGIN	
 	IF new.quanity < (select book_quanity from cart where book_id = new.book_id) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You can not update';
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You can not insert';
     END IF;
 END$$
 DELIMITER ;
-
 DROP TRIGGER Book_quanity;
+
 -- CART TOTAL
 -- tính toán tổng sản phẩm có trong cart trước khi update và cập nhật lại số lượng còn lại trong kho 
 -- sau khi thêm vào cart
@@ -35,7 +39,6 @@ CREATE TRIGGER Cart_total before INSERT ON Cart
 FOR EACH ROW
 BEGIN	
 	IF new.book_quanity <= (select quanity from book where book_id = new.book_id)  then 
-		set new.cart_quanity = new.cart_quanity + new.book_quanity;
         SET new.total_price =  new.book_quanity * (select price from book where book_id = new.book_id);
 		update book 
 		set quanity = quanity - new.book_quanity
@@ -56,79 +59,90 @@ DELIMITER //
 CREATE TRIGGER Cart_quanity_update before update ON Cart
 FOR EACH ROW
 BEGIN
-	 SET new.cart_quanity = ( select cart_quanity from cart where cart_id = new.cart_id and book_id = new.book_id) + new.book_quanity - old.book_quanity;
-     SET new.total_price = new.cart_quanity * (select price from book where book_id = new.book_id);
-END//
-DELIMITER ;	
-drop trigger Cart_quanity_update;
-
--- tính toán lại hàng trong book trước khi update trên cart
-DELIMITER //
-CREATE TRIGGER Book_quanity_update before update ON cart 
-FOR EACH ROW 
-BEGIN
-     update book 
+	 SET new.book_quanity = ( select book_quanity from cart where cart_id = new.cart_id and book_id = new.book_id) + new.book_quanity - old.book_quanity;
+     SET new.total_price = new.book_quanity * (select price from book where book_id = new.book_id);
+	 update book 
 	 set  quanity  = quanity - (new.book_quanity - old.book_quanity) 
      where book_id = new.book_id;
 END//
 DELIMITER ;	
-drop trigger Book_quanity_update;
+drop trigger Cart_quanity_update;
+
+
+
+
+DELIMITER //
+CREATE TRIGGER Cart_after_update after update ON Cart
+FOR EACH ROW
+BEGIN
+	 IF new.book_quanity = 0 then 
+     DELETE FROM CART WHERE cart_id = new.cart_id;
+     end if;
+END//
+DELIMITER ;	
+
+
+-- update lại số lượng sách trong kho sau khi xóa cart
+DELIMITER //
+CREATE TRIGGER Book_update_after_delete after delete ON cart 
+FOR EACH ROW 
+BEGIN
+     update book 
+	 set  quanity  = quanity + old.book_quanity
+     where book_id = old.book_id;
+END//
+DELIMITER ;	
+drop trigger Book_update_after_delete;
 
 -- dữ liệu cho việc báo cáo
-
-INSERT INTO Cart VALUES ('a1915140', 0, 0, '1915140' ,100000002,3);
-INSERT INTO Cart VALUES ('a1915140', 0, 0, '' ,100000004,6);
-INSERT INTO Cart VALUES ('a1915140', 0, 0, '' ,100000001,3);
-DELETE FROM `ass2`.`cart` WHERE (`cart_id` = 'a1915140');
-INSERT INTO Cart VALUES ('a1914672', 0, 121212, '1914672',100000001, 4);
-DELETE FROM `ass2`.`cart` WHERE (`cart_id` = 'a1914672');
+DELETE FROM `ass2`.`cart` WHERE (`cart_id` = '0');
+INSERT INTO Cart VALUES ('0',  null, '1914672',100000001, 4);
+INSERT INTO Cart VALUES ('1',  null, '1914672',100000002, 60);
+INSERT INTO Cart VALUES ('2',  null, '1914672',100000001, 3);
+INSERT INTO Cart VALUES ('4',  null, '2014002',100000004, 3);
+INSERT INTO Cart VALUES ('5',  null, '1915140',100000006, 3);
+INSERT INTO Cart VALUES ('5',  null, '1915140',100000006, 3);
+INSERT INTO Cart VALUES ('6',  null, '1915140',100000010, 3);
+INSERT INTO Cart VALUES ('7',  null, '2014002',100000010, 10);
+DELETE FROM `ass2`.`cart` WHERE (`customer_id` = 1914672 );
 SELECT * FROM ass2.cart;		
 SELECT * FROM ass2.book;
+
+
+
+
 -- customer nhap vao mot so luong sach nao do
 
 UPDATE cart
 set book_quanity = 10
-where cart_id = 'a1915140' and book_id = 100000002;
+where book_id = 100000001 and cart_id = '2' and customer_id = '1914672';
 
 -- customer press increase button
 UPDATE cart
-set book_quanity = book_quanity - 1 
-where cart_id = 'a1914672' and book_id = '100000001';
+set book_quanity = book_quanity - 3 
+where cart_id = '0' and book_id = '100000001';
 
 UPDATE cart
 set book_quanity = book_quanity + 1 
-where cart_id = 'a1915140' and book_id = '100000002';
-
--- PROCEDURE tính trung bình và tổng giá tiền ứng với 1 loại  sản phẩm trong cart
-
-DELIMITER $	
-CREATE PROCEDURE revenue_product(
-	IN product_id int, 
-    OUT total decimal(10,2),
-    OUT average decimal(10,2)
-)
-BEGIN
-    DECLARE count int default 0;	
-    SET count = (SELECT COUNT(*) FROM cart);
-    IF count > 0 THEN 	
-		SET total = (SELECT SUM(price * quanity) 
-					FROM book WHERE book_id = product_id);
-		SET average = (SELECT AVG(price * quanity) 
-					FROM book WHERE book_id = product_id);
-	ELSE
-		SET total = 0;
-        SET average = 0;
-        SELECT  CONCAT('YOUR PARAMETER ', product_id, 'IS NOT EXISTS!!!') AS 'ERROR';
-	END IF;	
-END $
-DELIMITER ; 	
-
-CALL revenue_product(100000002, @total, @avg);
-drop PROCEDURE revenue_product;
-SELECT @total, @avg;   
+where cart_id = '0' and book_id = '100000001';
 
 -- --------------------------------------------------------------
-
+DELIMITER $$
+CREATE PROCEDURE add_user_id (
+	acc_id		    CHAR(9) , 
+    roles 			CHAR(20)
+)
+BEGIN
+  INSERT INTO ACCOUNT VALUES (acc_id,)
+	IF account.roles = 'Admin' THEN
+		insert into admin.a_id values(account.acc_id);
+	ELSEIF account.roles='Customer' then
+		insert into customer.c_id  values (account.acc_id);
+	ELSEIF account.roles='Provide' then
+		insert into supplier.s_id values (account.acc_id);
+	END IF;
+END$$
+DELIMITER ;
 
 
 

@@ -70,18 +70,6 @@ drop trigger Cart_quanity_update;
 
 
 
-
-DELIMITER //
-CREATE TRIGGER Cart_after_update after update ON Cart
-FOR EACH ROW
-BEGIN
-	 IF new.book_quanity = 0 then 
-     DELETE FROM CART WHERE cart_id = new.cart_id;
-     end if;
-END//
-DELIMITER ;	
-
-
 -- update lại số lượng sách trong kho sau khi xóa cart
 DELIMITER //
 CREATE TRIGGER Book_update_after_delete after delete ON cart 
@@ -109,6 +97,7 @@ SELECT * FROM ass2.cart;
 SELECT * FROM ass2.book;
 
 
+-- PROCEDURE 
 
 
 -- customer nhap vao mot so luong sach nao do
@@ -127,22 +116,7 @@ set book_quanity = book_quanity + 1
 where cart_id = '0' and book_id = '100000001';
 
 -- --------------------------------------------------------------
-DELIMITER $$
-CREATE PROCEDURE add_user_id (
-	acc_id		    CHAR(9) , 
-    roles 			CHAR(20)
-)
-BEGIN
-  INSERT INTO ACCOUNT VALUES (acc_id,)
-	IF account.roles = 'Admin' THEN
-		insert into admin.a_id values(account.acc_id);
-	ELSEIF account.roles='Customer' then
-		insert into customer.c_id  values (account.acc_id);
-	ELSEIF account.roles='Provide' then
-		insert into supplier.s_id values (account.acc_id);
-	END IF;
-END$$
-DELIMITER ;
+
 
 
 

@@ -6,12 +6,11 @@ CREATE TABLE Account
 	lname		    VARCHAR(30)	NOT NULL,
 	date_of_birth   DATE,
 	address	        VARCHAR(30),
-	sex		        CHAR(1) NOT NULL,
+	sex		        CHAR(5) NOT NULL,
 	roles       	CHAR(20)  NOT NULL,
-	passwords	    VARCHAR(20) NOT NULL,
-	username		VARCHAR(30)  NOT NULL
+	passwords	    VARCHAR(20) NOT NULL
 );
-
+-- validate
 ALTER TABLE ACCOUNT
 ADD CONSTRAINT special_character_accname CHECK ( SUBSTRING(acc_name,1,1) >= 'a' and SUBSTRING(acc_name,1,1) <='z' );
 
@@ -68,7 +67,6 @@ CREATE TABLE Book
     edition         char(9) ,
     quanity         INT NOT NULL,
     bAuthor_id      char(9) NOT NULL,
-    bName           varchar(20) NOT NULL,
     bCat_id         char(9) NOT NULL,
     price           DECIMAL(10,2) NOT NULL
 --    CONSTRAINT FK_author_id FOREIGN KEY (bAuthor_id)
@@ -85,29 +83,20 @@ ALTER TABLE book
 ADD CONSTRAINT fk_provider FOREIGN KEY(bProvider_id) REFERENCES supplier(s_id) ON DELETE CASCADE;
 
 
-ALTER TABLE BOOK DROP bName;
-
--- ALTER TABLE BOOK NO CHECK CONSTRAINT ALL;
-DROP TABLE BOOK;
-
 CREATE TABLE CART (
     cart_id CHAR(9) PRIMARY KEY,
-    quanity INT NOT NULL,
-    total_price INT NOT NULL,
-    customer_id CHAR(9)
+    total_price INT,
+    customer_id CHAR(9) NOT NULL,
+    book_id CHAR(9) NOT NULL,
+    book_quanity INT NOT NULL
 );
-
+-- FOREIGN KEY
 ALTER TABLE CART
 ADD CONSTRAINT fk_cus FOREIGN KEY (customer_id) REFERENCES customer(c_id);
 
 ALTER TABLE CART
-DROP CONSTRAINT fk_cus;
-
-ALTER TABLE CART
 ADD CONSTRAINT FK_book_ids FOREIGN KEY (book_id) REFERENCES Book(book_id);
 
-ALTER TABLE CART
-DROP CONSTRAINT FK_book_ids;
 
 CREATE TABLE Include
 (

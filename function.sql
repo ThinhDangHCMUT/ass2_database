@@ -101,8 +101,8 @@ BEGIN
 END$$
 DELIMITER ;
 
-select * from cart;
-select book_name, CustomerLevel(book_quanity) from cart a join book b on a.book_id = b.book_id;
+
+
 
 select 
 bAuthor_id,
@@ -136,9 +136,13 @@ select login_check('phutruong11', 1234) as flag;
 -- 2/ 
 
 
--- TEST FUNCTION
+-- TEST FUNCTION BY PROCEDURE
 -- tạo view tính tổng số sachs và tổng tiền theo từng customer_id
-create or replace view f as select customer_id,sum(book_quanity) as quanity, sum(total_price) as total 
+
+DELIMITER $$
+CREATE PROCEDURE list_rank_customer()
+begin
+	create or replace view f as select customer_id,sum(book_quanity) as quanity, sum(total_price) as total 
 from cart group by customer_id;
 
 select * from f;
@@ -149,5 +153,18 @@ select * from cus_rank;
 -- ứng với từng rank thì sẽ có discount tương ứng
 select mem_discount(ranks,total), total, ranks from cus_rank group by customer_id;
 
+end $$
+DELIMITER ;
+DROP PROCEDURE list_rank_customer;
+CALL list_rank_customer();
 
-  
+DELIMITER $$
+CREATE PROCEDURE check_customer_level()
+begin 
+	create or replace view numberbook as select sum(book_quanity) as total_book, customer_id from cart group by customer_id ;
+	select * from numberbook;
+	select customer_id, CustomerLevel(total_book) as Customer_level from numberbook;
+end $$
+DELIMITER ;
+DROP PROCEDURE check_customer_level;
+CALL check_customer_level();
